@@ -38,6 +38,7 @@ function App() {
   const path = glyphPathData(glyph);
   const all = useMemo(()=>[...drawings].map(([unicode,contours])=>makeGlyph(unicode,contours,simplicity,tension)).filter(g=>g.contours.length),[drawings,simplicity,tension]);
   const colors = palettes[palette];
+  const imageRect = useMemo(()=>{if(!image)return{x:0,y:0,w:500,h:500};const scale=Math.min(500/image.naturalWidth,500/image.naturalHeight);const w=image.naturalWidth*scale,h=image.naturalHeight*scale;return{x:(500-w)/2,y:(500-h)/2,w,h};},[image]);
   const themeStyle = {
     "--bg":colors.background,"--surface":colors.surface,"--fg":colors.foreground,"--muted":colors.muted,
     "--border":colors.border,"--selection":colors.selection,"--cursor":colors.cursor,
@@ -47,12 +48,12 @@ function App() {
   function stagePoint(e:React.PointerEvent<SVGSVGElement>):Point {
     const p=svg.current!.createSVGPoint();p.x=e.clientX;p.y=e.clientY;
     const matrix=svg.current!.getScreenCTM();const q=matrix?p.matrixTransform(matrix.inverse()):{x:0,y:0};
-    return {x:Math.max(0,Math.min(500,q.x)),y:Math.max(0,Math.min(500,q.y))};
+    return {x:Math.max(imageRect.x,Math.min(imageRect.x+imageRect.w,q.x)),y:Math.max(imageRect.y,Math.min(imageRect.y+imageRect.h,q.y))};
   }
   function upload(e:React.ChangeEvent<HTMLInputElement>) {
     const file=e.target.files?.[0];if(!file)return;
     const url=URL.createObjectURL(file),img=new Image();
-    img.onload=()=>{setImage(img);setImageUrl(url);setCrop({x:35,y:35,w:430,h:430});setMessage("Adjust the crop around one glyph, then reconstruct.");};
+    img.onload=()=>{setImage(img);setImageUrl(url);const scale=Math.min(500/img.naturalWidth,500/img.naturalHeight),w=img.naturalWidth*scale,h=img.naturalHeight*scale;setCrop({x:(500-w)/2+w*.08,y:(500-h)/2+h*.08,w:w*.84,h:h*.84});setMessage("Adjust the crop around one glyph, then reconstruct.");};
     img.onerror=()=>{URL.revokeObjectURL(url);setMessage("Could not read that image.");};
     img.src=url;e.target.value="";
   }
@@ -61,7 +62,7 @@ function App() {
     const size=256,canvas=document.createElement("canvas");canvas.width=size;canvas.height=size;
     const context=canvas.getContext("2d",{willReadFrequently:true});if(!context){setMessage("Canvas is unavailable.");return;}
     context.fillStyle="#fff";context.fillRect(0,0,size,size);
-    context.drawImage(image,crop.x/500*image.naturalWidth,crop.y/500*image.naturalHeight,crop.w/500*image.naturalWidth,crop.h/500*image.naturalHeight,0,0,size,size);
+    const sourceX=(crop.x-imageRect.x)/imageRect.w*image.naturalWidth,sourceY=(crop.y-imageRect.y)/imageRect.h*image.naturalHeight,sourceW=crop.w/imageRect.w*image.naturalWidth,sourceH=crop.h/imageRect.h*image.naturalHeight,scale=Math.min(size/sourceW,size/sourceH),destW=sourceW*scale,destH=sourceH*scale;context.drawImage(image,sourceX,sourceY,sourceW,sourceH,(size-destW)/2,(size-destH)/2,destW,destH);
     const pixels=context.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
     for(let i=0;i<mask.length;i++){const alpha=pixels[i*4+3],lum=.2126*pixels[i*4]+.7152*pixels[i*4+1]+.0722*pixels[i*4+2];mask[i]=alpha>16&&lum<threshold?1:0;}
     try {
@@ -104,9 +105,9 @@ function App() {
         <div className="stagebar"><strong>{String.fromCharCode(code)}</strong><span>{image?"CROP IMAGE":"VECTOR OUTLINE"}</span><button onClick={reconstruct} disabled={!image}>Reconstruct</button></div>
         <div className="stage">
           <svg ref={svg} viewBox="0 0 500 500" onPointerDown={e=>{if(!image)return;const p=stagePoint(e);setDrag(p);setCrop({x:p.x,y:p.y,w:0,h:0});e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(!drag)return;const p=stagePoint(e);setCrop({x:Math.min(drag.x,p.x),y:Math.min(drag.y,p.y),w:Math.abs(p.x-drag.x),h:Math.abs(p.y-drag.y)});}} onPointerUp={()=>setDrag(null)} onPointerCancel={()=>setDrag(null)}>
-            {image&&<image href={imageUrl} x="0" y="0" width="500" height="500" preserveAspectRatio="none"/>}
+            {image&&<image href={imageUrl} x="0" y="0" width="500" height="500" preserveAspectRatio="xMidYMid meet"/>}
             {!image&&<g className="empty"><path d={path} fill="currentColor" fillRule="nonzero"/>{!raw.length&&<text x="250" y="245" textAnchor="middle">Open an image to begin</text>}</g>}
-            {image&&<><rect x="0" y="0" width="500" height="500" fill="#000" opacity=".48"/><rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="none" stroke="var(--cursor)" strokeWidth="2" vectorEffect="non-scaling-stroke"/><svg x={crop.x} y={crop.y} width={crop.w} height={crop.h} viewBox={`${crop.x} ${crop.y} ${Math.max(1,crop.w)} ${Math.max(1,crop.h)}`}><image href={imageUrl} x="0" y="0" width="500" height="500" preserveAspectRatio="none"/></svg></>}
+            {image&&<><rect x="0" y="0" width="500" height="500" fill="#000" opacity=".48"/><rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="none" stroke="var(--cursor)" strokeWidth="2" vectorEffect="non-scaling-stroke"/><svg x={crop.x} y={crop.y} width={crop.w} height={crop.h} viewBox={`${crop.x} ${crop.y} ${Math.max(1,crop.w)} ${Math.max(1,crop.h)}`}><image href={imageUrl} x="0" y="0" width="500" height="500" preserveAspectRatio="xMidYMid meet"/></svg></>}
             {image&&raw.length>0&&<path d={path} fill="var(--accent)" fillRule="nonzero" opacity=".8" pointerEvents="none"/>}
           </svg>
         </div>
