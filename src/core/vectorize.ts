@@ -70,7 +70,7 @@ function fitLine(points: Point[]): LineFit {
   return { angle, x: mean.x, y: mean.y, error };
 }
 
-function nearestAxis(angle: number, tolerance = 0.14): "horizontal" | "vertical" | null {
+function nearestAxis(angle: number, tolerance = 0.25): "horizontal" | "vertical" | null {
   const a = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)));
   if (Math.min(a, Math.abs(Math.PI - a)) < tolerance) return "horizontal";
   if (Math.abs(a - Math.PI / 2) < tolerance) return "vertical";
