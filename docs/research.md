@@ -12,7 +12,7 @@
 
 ## Current implementation
 
-The browser app now has a deterministic geometric CV stage: boundary conditioning, tangent-based corner detection, line/curve classification, total-least-squares line fitting, orthogonal snapping, and least-squares cubic fitting. It retains explicit contour topology and compiles the inferred geometry to CFF OTF.
+The browser app now has a deterministic geometric CV stage: boundary conditioning, tangent-based corner detection, line/curve classification, total-least-squares line fitting, orthogonal snapping, cross-contour grid alignment, and least-squares cubic fitting. It retains explicit contour topology and compiles the inferred geometry to CFF OTF.
 
 **No pretrained network from the papers above is integrated yet.** In particular, the current stage is not DeepVecFont, Im2Vec, the technical-drawing transformer, or DiffVG. Those require their own runtime, weights, training-data compatibility and inference adapters. The app must not claim otherwise.
 
