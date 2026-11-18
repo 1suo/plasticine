@@ -19,7 +19,7 @@ describe("img2bez UFO point stream adapter", () => {
     });
     expect(traced.advanceWidth).toBe(640);
     expect(traced.contours).toHaveLength(1);
-    const glyph = makeGlyph(97, traced.contours, 0.4, 0.8);
+    const glyph = makeGlyph(97, traced.contours, 0.4, 1.0);
     expect(glyph.contours[0].closed).toBe(true);
     expect(glyph.contours[0].curves).toHaveLength(4);
     expect(glyph.contours[0].curves[1].p1).toEqual({ x: 100, y: 370 });
