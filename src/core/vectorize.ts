@@ -110,7 +110,7 @@ function segmentSamples(points: Point[], start: number, end: number): Point[] {
   return out;
 }
 
-function snapGrid(loops: Point[][], tolerance = 2.6): Point[][] {
+function snapGrid(loops: Point[][], tolerance = 1.2): Point[][] {
   const points = loops.flatMap(loop => loop.slice(0, -1));
   const before = points.map(point => ({ x: point.x, y: point.y }));
   const align = (axis: "x" | "y") => {
