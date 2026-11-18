@@ -32,6 +32,7 @@ The adapter preserves img2bez's UFO point semantics and converts its line/cubic/
 
 - Open image — load a browser-decodable raster.
 - Crop — select one glyph in the image stage.
+- Source profile — choose wild raster, clean font render or photo scan.
 - Threshold — set the grayscale foreground threshold.
 - Reconstruct — run img2bez's font-aware vectorization and raster refinement.
 - Curve tension — adjust inferred cubic handles.
