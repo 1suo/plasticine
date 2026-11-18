@@ -2,7 +2,6 @@ import type { Point } from "./geometry";
 import { traceBitmap } from "./trace";
 
 type Segment = { kind: "line" | "curve"; c1: Point; c2: Point };
-type FeaturePoint = Point & { corner?: boolean; segment?: Segment };
 type LineFit = { angle: number; x: number; y: number; error: number };
 
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
