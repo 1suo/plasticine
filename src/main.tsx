@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { makeGlyph, glyphPathData, countSegments, type Point } from "./core/geometry";
+import { makeGlyph, countSegments, type Point } from "./core/geometry";
 import { traceGlyphImage } from "./core/img2bez";
 import { compileFont, downloadFont } from "./core/font";
 import "./style.css";
@@ -56,7 +56,6 @@ function App() {
   const layers = layersByGlyph.get(code) ?? [initialLayer];
   const activeLayer = layers.find(layer=>layer.id===activeLayerId) ?? layers[0];
   const glyph = useMemo(()=>({...makeGlyph(code,raw,0.4,tension),advanceWidth:advances.get(code)??700}),[code,raw,tension,advances]);
-  const path = glyphPathData(glyph);
   const all = useMemo(()=>[...drawings].map(([unicode,contours])=>({...makeGlyph(unicode,contours,0.4,tension),advanceWidth:advances.get(unicode)??700})).filter(g=>g.contours.length),[drawings,tension,advances]);
   const colors = palettes[palette];
   const imageRect = useMemo(()=>{if(!image)return{x:0,y:0,w:500,h:500};const scale=Math.min(500/image.naturalWidth,500/image.naturalHeight);const w=image.naturalWidth*scale,h=image.naturalHeight*scale;return{x:(500-w)/2,y:(500-h)/2,w,h};},[image]);
@@ -203,7 +202,7 @@ function App() {
         </section>
         <section className="layersPanel">
           <div className="panelTitle"><label>Layers</label><button onClick={addLayer}>+ Layer</button></div>
-          {layers.map((layer,index)=><div className={activeLayer.id===layer.id?"layer activeLayer":"layer"} key={layer.id}>
+          {layers.map(layer=><div className={activeLayer.id===layer.id?"layer activeLayer":"layer"} key={layer.id}>
             <button className="visibility" aria-label={layer.visible?"Hide layer":"Show layer"} onClick={()=>updateLayers(current=>current.map(v=>v.id===layer.id?{...v,visible:!v.visible}:v))}>{layer.visible?"◉":"○"}</button>
             <button className="layerName" onClick={()=>setActiveLayerId(layer.id)}>{layer.name}</button>
             <span className="layerCount">{layer.strokes.length}</span>
