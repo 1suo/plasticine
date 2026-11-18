@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { makeGlyph, glyphPathData, countSegments, type Point } from "./core/geometry";
-import { traceBitmap } from "./core/trace";
+import { vectorizeBitmap } from "./core/vectorize";
 import { compileFont, downloadFont } from "./core/font";
 import "./style.css";
 
@@ -66,7 +66,7 @@ function App() {
     const pixels=context.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
     for(let i=0;i<mask.length;i++){const alpha=pixels[i*4+3],lum=.2126*pixels[i*4]+.7152*pixels[i*4+1]+.0722*pixels[i*4+2];mask[i]=alpha>16&&lum<threshold?1:0;}
     try {
-      const contours=traceBitmap(mask,size,size);
+      const contours=vectorizeBitmap(mask,size,size);
       if(!contours.length){setMessage("No foreground pixels found. Adjust crop or threshold.");return;}
       setDrawings(old=>{const next=new Map(old);next.set(code,contours);return next;});
       setMessage(`Reconstructed ${contours.length} contour(s) from ${mask.reduce((a,b)=>a+b,0)} ink pixels.`);
