@@ -2,7 +2,7 @@
 
 The editor retains raw pointer contours separately from fitted geometry. Its deterministic baseline uses Ramer–Douglas–Peucker simplification followed by Catmull–Rom-to-cubic fitting. Canonical Glyph IR stores Unicode identity, advance width, contour topology and cubic Bézier segments.
 
-The font backend converts cubic outlines to TrueType-compatible quadratic outlines using opentype.js. The browser loads the resulting TTF through FontFace for the specimen preview. SVG is a rendering/interchange format, not the canonical model.
+The font backend writes native cubic Bézier outlines into CFF/PostScript OpenType (OTF) using opentype.js. The browser loads the resulting TTF through FontFace for the specimen preview. SVG is a rendering/interchange format, not the canonical model.
 
 ## Deliberate boundaries
 
