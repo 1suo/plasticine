@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { makeGlyph, glyphPathData, countSegments, type Point } from "./core/geometry";
-import { vectorizeBitmap } from "./core/vectorize";
+import { traceGlyphImage } from "./core/img2bez";
 import { compileFont, downloadFont } from "./core/font";
 import "./style.css";
 
@@ -20,6 +20,7 @@ type Crop = { x:number; y:number; w:number; h:number };
 function App() {
   const [code,setCode] = useState(65);
   const [drawings,setDrawings] = useState<Map<number,Point[][]>>(new Map());
+  const [advances,setAdvances] = useState<Map<number,number>>(new Map());
   const [imageUrl,setImageUrl] = useState("");
   const [image,setImage] = useState<HTMLImageElement|null>(null);
   const [crop,setCrop] = useState<Crop>({x:50,y:50,w:400,h:400});
@@ -33,9 +34,9 @@ function App() {
   const [message,setMessage] = useState("Upload a glyph image. Select the crop, then reconstruct.");
   const svg = useRef<SVGSVGElement>(null);
   const raw = drawings.get(code) ?? [];
-  const glyph = useMemo(()=>makeGlyph(code,raw,0.4,tension),[code,raw,tension]);
+  const glyph = useMemo(()=>({...makeGlyph(code,raw,0.4,tension),advanceWidth:advances.get(code)??700}),[code,raw,tension,advances]);
   const path = glyphPathData(glyph);
-  const all = useMemo(()=>[...drawings].map(([unicode,contours])=>makeGlyph(unicode,contours,0.4,tension)).filter(g=>g.contours.length),[drawings,tension]);
+  const all = useMemo(()=>[...drawings].map(([unicode,contours])=>({...makeGlyph(unicode,contours,0.4,tension),advanceWidth:advances.get(unicode)??700})).filter(g=>g.contours.length),[drawings,tension,advances]);
   const colors = palettes[palette];
   const imageRect = useMemo(()=>{if(!image)return{x:0,y:0,w:500,h:500};const scale=Math.min(500/image.naturalWidth,500/image.naturalHeight);const w=image.naturalWidth*scale,h=image.naturalHeight*scale;return{x:(500-w)/2,y:(500-h)/2,w,h};},[image]);
   const themeStyle = {
@@ -56,19 +57,22 @@ function App() {
     img.onerror=()=>{URL.revokeObjectURL(url);setMessage("Could not read that image.");};
     img.src=url;e.target.value="";
   }
-  function reconstruct() {
+  async function reconstruct() {
     if(!image){setMessage("Upload an image first.");return;}
-    const size=256,canvas=document.createElement("canvas");canvas.width=size;canvas.height=size;
-    const context=canvas.getContext("2d",{willReadFrequently:true});if(!context){setMessage("Canvas is unavailable.");return;}
+    const size=1024,canvas=document.createElement("canvas");canvas.width=size;canvas.height=size;
+    const context=canvas.getContext("2d");if(!context){setMessage("Canvas is unavailable.");return;}
     context.fillStyle="#fff";context.fillRect(0,0,size,size);
-    const sourceX=(crop.x-imageRect.x)/imageRect.w*image.naturalWidth,sourceY=(crop.y-imageRect.y)/imageRect.h*image.naturalHeight,sourceW=crop.w/imageRect.w*image.naturalWidth,sourceH=crop.h/imageRect.h*image.naturalHeight,scale=Math.min(size/sourceW,size/sourceH),destW=sourceW*scale,destH=sourceH*scale;context.drawImage(image,sourceX,sourceY,sourceW,sourceH,(size-destW)/2,(size-destH)/2,destW,destH);
-    const pixels=context.getImageData(0,0,size,size).data,mask=new Uint8Array(size*size);
-    for(let i=0;i<mask.length;i++){const alpha=pixels[i*4+3],lum=.2126*pixels[i*4]+.7152*pixels[i*4+1]+.0722*pixels[i*4+2];mask[i]=alpha>16&&lum<threshold?1:0;}
+    const sourceX=(crop.x-imageRect.x)/imageRect.w*image.naturalWidth,sourceY=(crop.y-imageRect.y)/imageRect.h*image.naturalHeight,sourceW=crop.w/imageRect.w*image.naturalWidth,sourceH=crop.h/imageRect.h*image.naturalHeight,scale=Math.min(size/sourceW,size/sourceH),destW=sourceW*scale,destH=sourceH*scale;
+    context.drawImage(image,sourceX,sourceY,sourceW,sourceH,(size-destW)/2,(size-destH)/2,destW,destH);
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/png"));
+    if(!blob){setMessage("Could not encode the cropped image.");return;}
     try {
-      const contours=vectorizeBitmap(mask,size,size);
-      if(!contours.length){setMessage("No foreground pixels found. Adjust crop or threshold.");return;}
-      setDrawings(old=>{const next=new Map(old);next.set(code,contours);return next;});
-      setMessage(`Reconstructed ${contours.length} contour(s) from ${mask.reduce((a,b)=>a+b,0)} ink pixels.`);
+      setMessage("Detecting glyph structure and fitting font-ready outlines…");
+      const traced=await traceGlyphImage(new Uint8Array(await blob.arrayBuffer()),code,threshold);
+      setDrawings(old=>{const next=new Map(old);next.set(code,traced.contours);return next;});
+      setAdvances(old=>{const next=new Map(old);next.set(code,traced.advanceWidth);return next;});
+      const segments=traced.contours.reduce((sum,contour)=>sum+contour.length-1,0);
+      setMessage(`img2bez inferred ${traced.contours.length} contour(s), ${segments} structural segments, and a ${traced.advanceWidth}-unit advance.`);
     } catch(error) { setMessage(String(error)); }
   }
   function compile() {
@@ -79,13 +83,13 @@ function App() {
     } catch(error) { setMessage(String(error)); }
   }
   function exportProject() {
-    const data={format:"plasticine-project",version:1,family,glyphs:[...drawings].map(([unicode,contours])=>({unicode,contours}))};
+    const data={format:"plasticine-project",version:2,family,glyphs:[...drawings].map(([unicode,contours])=>({unicode,contours,advanceWidth:advances.get(unicode)??700}))};
     const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"})),a=document.createElement("a");
     a.href=url;a.download="plasticine.json";a.click();URL.revokeObjectURL(url);
   }
   function importProject(e:React.ChangeEvent<HTMLInputElement>) {
     const file=e.target.files?.[0];if(!file)return;
-    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");setDrawings(new Map<number,Point[][]>(data.glyphs.map((g:{unicode:number;contours:Point[][]})=>[g.unicode,g.contours] as [number,Point[][]])));setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
+    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");setDrawings(new Map<number,Point[][]>(data.glyphs.map((g:{unicode:number;contours:Point[][]})=>[g.unicode,g.contours] as [number,Point[][]])));setAdvances(new Map<number,number>(data.glyphs.map((g:{unicode:number;advanceWidth?:number})=>[g.unicode,g.advanceWidth??700] as [number,number])));setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
   }
   return <div className="app" style={themeStyle}>
     <header>
