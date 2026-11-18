@@ -26,6 +26,7 @@ function App() {
   const [crop,setCrop] = useState<Crop>({x:50,y:50,w:400,h:400});
   const [drag,setDrag] = useState<Point|null>(null);
   const [threshold,setThreshold] = useState(180);
+  const [profile,setProfile] = useState<"wild"|"clean"|"photo">("wild");
   const [tension,setTension] = useState(.8);
   const [family,setFamily] = useState("Plasticine");
   const [specimen,setSpecimen] = useState("Hamburgefontsiv 0123456789");
@@ -68,7 +69,7 @@ function App() {
     if(!blob){setMessage("Could not encode the cropped image.");return;}
     try {
       setMessage("Detecting glyph structure and fitting font-ready outlines…");
-      const traced=await traceGlyphImage(new Uint8Array(await blob.arrayBuffer()),code,threshold);
+      const traced=await traceGlyphImage(new Uint8Array(await blob.arrayBuffer()),code,threshold,profile);
       setDrawings(old=>{const next=new Map(old);next.set(code,traced.contours);return next;});
       setAdvances(old=>{const next=new Map(old);next.set(code,traced.advanceWidth);return next;});
       const segments=traced.contours.reduce((sum,contour)=>sum+contour.length-1,0);
@@ -118,6 +119,8 @@ function App() {
       </section>
       <aside>
         <section>
+          <label>Source profile</label>
+          <select className="textinput" value={profile} onChange={e=>setProfile(e.target.value as "wild"|"clean"|"photo")}><option value="wild">Wild / unknown raster</option><option value="clean">Clean font render</option><option value="photo">Photo / printed scan</option></select>
           <label>Threshold <output>{threshold}</output></label>
           <input type="range" min="0" max="255" value={threshold} onChange={e=>setThreshold(+e.target.value)}/>
           <label>Curve tension <output>{tension.toFixed(2)}</output></label>
