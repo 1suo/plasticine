@@ -165,7 +165,7 @@ function App() {
   }
   function importProject(e:React.ChangeEvent<HTMLInputElement>) {
     const file=e.target.files?.[0];if(!file)return;
-    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");const glyphs=data.glyphs as SavedGlyph[];setDrawings(new Map(glyphs.map(g=>[g.unicode,g.contours??[]])));setAdvances(new Map(glyphs.map(g=>[g.unicode,g.advanceWidth??700])));setLayersByGlyph(new Map(glyphs.filter(g=>g.layers?.length).map(g=>[g.unicode,g.layers!])));setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
+    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");const glyphs=data.glyphs as SavedGlyph[];setDrawings(new Map<number,Point[][]>(glyphs.map(g=>[g.unicode,g.contours??[]] as [number,Point[][]])));setAdvances(new Map<number,number>(glyphs.map(g=>[g.unicode,g.advanceWidth??700] as [number,number])));setLayersByGlyph(new Map<number,Layer[]>(glyphs.filter(g=>g.layers?.length).map(g=>[g.unicode,g.layers!] as [number,Layer[]])));setActiveLayerId("ink");setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
   }
   return <div className="app" style={themeStyle}>
     <header>
@@ -198,7 +198,7 @@ function App() {
         <section className="tools">
           <div className="toolrow"><button className={tool==="pen"?"active":""} onClick={()=>setTool("pen")}>Pen</button><button className={tool==="eraser"?"active":""} onClick={()=>setTool("eraser")}>Eraser</button></div>
           <label>Ink color</label><div className="swatches"><button aria-label="Black ink" className={inkColor==="#000000"?"chosen":""} onClick={()=>{setInkColor("#000000");setTool("pen");}}><i className="blackSwatch"/></button><button aria-label="White ink" className={inkColor==="#ffffff"?"chosen":""} onClick={()=>{setInkColor("#ffffff");setTool("pen");}}><i className="whiteSwatch"/></button></div>
-          <label>Pen size <output>{penSize}px</output></label><input type="range" min="1" max="64" value={penSize} onChange={e=>setPenSize(+e.target.value)}/>
+          <label>Brush size <output>{penSize}</output></label><input type="range" min="1" max="64" value={penSize} onChange={e=>setPenSize(+e.target.value)}/>
           <label className="checkrow"><input type="checkbox" checked={imageVisible} disabled={!image} onChange={e=>setImageVisible(e.target.checked)}/> Show source image</label>
         </section>
         <section className="layersPanel">
