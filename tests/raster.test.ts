@@ -30,6 +30,16 @@ describe("raster reconstruction objective", () => {
     expect(result.glyph.contours.length).toBe(1);
   });
 
+  it("uses opposite contour winding to preserve counters", () => {
+    const glyph = makeGlyph(79, [
+      [{ x: 80, y: 80 }, { x: 420, y: 80 }, { x: 420, y: 420 }, { x: 80, y: 420 }, { x: 80, y: 80 }],
+      [{ x: 200, y: 200 }, { x: 200, y: 300 }, { x: 300, y: 300 }, { x: 300, y: 200 }, { x: 200, y: 200 }]
+    ], 0.4, 0.8);
+    const pixels = rasterizeGlyph(glyph, 100, 100);
+    expect(pixels[15 * 100 + 15]).toBe(1);
+    expect(pixels[50 * 100 + 50]).toBe(0);
+  });
+
   it("rejects malformed reference dimensions", () => {
     const glyph = makeGlyph(65, square, 0.4, 0.8);
     expect(() => rasterDifference(glyph, { width: 32, height: 32, data: new Uint8Array(4) })).toThrow();
