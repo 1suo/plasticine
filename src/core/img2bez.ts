@@ -92,12 +92,13 @@ export async function traceGlyphImage(
   bytes: Uint8Array,
   unicode: number,
   threshold: number,
+  profile: "wild" | "clean" | "photo",
 ): Promise<TracedGlyph> {
   const wasm = await loadWasm();
   const config = {
     glyph: String.fromCodePoint(unicode),
     unicode: unicode.toString(16).toUpperCase().padStart(4, "0"),
-    profile: "wild",
+    profile,
     style: "basic",
     targetHeight: 500,
     yOffset: -100,
