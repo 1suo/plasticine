@@ -80,8 +80,11 @@ export function fitGlyphToRaster(
     const empty: GlyphIR = { unicode, name: String.fromCodePoint(unicode), advanceWidth: 700, contours: [], fitError: 0, objective: 0 };
     return { glyph: empty, rasterError: rasterDifference(empty, reference), objective: rasterDifference(empty, reference) };
   }
-  const candidates = rawContours.map(raw => TOLERANCES.map(tolerance => fitContour(raw, tolerance, tension))
-    .filter(contour => contour.points.length > 2));
+  const candidates = rawContours.map(raw => {
+    const options = TOLERANCES.map(tolerance => fitContour(raw, tolerance, tension))
+      .filter(contour => contour.points.length > 2);
+    return options.length ? options : [fitContour(raw, 0.5, tension)];
+  });
   const selected = candidates.map(options => options.reduce((best, option) =>
     option.curves.length < best.curves.length ? option : best, options[0]));
   const build = (): GlyphIR => ({
@@ -98,7 +101,8 @@ export function fitGlyphToRaster(
   for (let pass = 0; pass < 2; pass++) {
     let changed = false;
     for (let index = 0; index < candidates.length; index++) {
-      let best = selected[index];
+      const previous = selected[index];
+      let best = previous;
       let bestScore = score(build());
       for (const candidate of candidates[index]) {
         selected[index] = candidate;
@@ -109,7 +113,7 @@ export function fitGlyphToRaster(
         }
       }
       selected[index] = best;
-      if (best !== candidates[index][0]) changed = true;
+      if (best !== previous) changed = true;
     }
     if (!changed) break;
   }
