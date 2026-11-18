@@ -11,17 +11,24 @@
 - [x] Persist drawing layers in project JSON.
 - [ ] Undo/redo, layer reordering, zoom/pan and source-image persistence.
 
-## Raster-to-vector
+## Structural CV — requested outcome
+- [ ] Detect stroke endpoints, corners, junctions and intersections.
+- [ ] Distinguish straight segments, circular/elliptical arcs and freeform curves.
+- [ ] Infer horizontal/vertical alignment, orthogonality, parallelism and perpendicularity.
+- [ ] Infer coincidence, tangency, symmetry and repeated/shared dimensions where supported by evidence.
+- [ ] Preserve topology: counters, connected components, crossings and shared junctions.
+- [ ] Infer centerlines/contours and stroke width without confusing filled-outline tracing with intended centerline geometry.
+- [ ] Return editable primitives and explicit constraints with confidence/provenance.
+- [ ] Display inferred geometry and constraints as inspectable, editable overlays.
+- [ ] Validate against deliberately imperfect hand-drawn glyph examples with known intended geometry.
+- [ ] Demonstrate robust behavior on letters with counters, diagonals, curves, joins and mixed primitive types.
+
+## Legacy bitmap tracing
 - [x] Composite visible source image and visible drawing layers.
-- [x] Use white background and monochrome authoring.
-- [x] Pass the composite PNG to img2bez WASM.
-- [x] Learned site classification, structural feature detection, constrained Bézier fitting and raster refinement.
-- [ ] Validate against a labeled real-world glyph corpus.
-- [ ] Browser E2E test of drawing → reconstruction.
+- [x] Pass composite PNG to img2bez WASM.
+- [ ] Do not count this as structural CV acceptance.
 
 ## Font
-- [x] Preserve UFO line/cubic/quadratic semantics.
-- [x] Preserve per-glyph advance widths.
 - [x] Compile CFF/PostScript OTF.
 - [x] Load generated OTF in browser specimen.
 - [ ] OpenType Sanitizer/fontbakery and external desktop validation.
