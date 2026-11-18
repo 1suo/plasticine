@@ -23,9 +23,9 @@ SVG is a view/interchange representation, not the canonical data model. Cubic ge
 ## Current limitations
 
 - The reconstruction backend is deterministic geometry, not a trained Vitruvion, Im2Vec, DeepSVG or DeepVecFont model.
-- The present fidelity term measures contour samples against fitted curve samples. It does not yet compare rasterized glyph masks against a source bitmap.
+- Raster fitting is binary and 128×128; it uses a fixed luminance threshold, stretches the source to a square glyph canvas, and optimizes only among discrete simplification candidates. It is not a differentiable renderer, subpixel antialiasing model, or DiffVG implementation.\n- Reference images are session-local and are not embedded in project JSON. The current UI uses raster fitting for the active glyph; per-glyph references are applied when compiling the font.
 - Discrete topology optimization (split/merge contours, junction hypotheses, hole classification) is not implemented.
 - Drawn contours are closed silhouettes. Counter winding must be checked; robust topology validation is pending.
 - Glyph advance width is currently a shared default. Per-glyph bearings, metrics, anchors, kerning and variable-font axes are not yet implemented.
 - The live preview uses FontFace in the browser. Automated CI currently verifies geometry, CFF output parsing, typecheck and production build; it does not yet automate an OS-level install or external application specimen.
-- WOFF2 export, font QA/repair, editable Bézier handles, reference-image import and learned inference backends remain future work.
+- WOFF2 export, font QA/repair, editable Bézier handles, learned inference backends remain future work.
