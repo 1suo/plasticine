@@ -1,27 +1,24 @@
-# Acceptance checklist
+# Acceptance
 
-## Geometry and editing
-- [x] Draw closed contours with pointer input.
-- [x] Add multiple contours and preserve drawings when switching glyphs.
-- [x] Undo latest contour and clear selected glyph.
-- [x] Fit cubic Béziers and optimize sampled geometric fidelity against segment complexity.
-- [x] Test closed contours, multiple contours and open/closed fitting.
+## Raster-to-vector
+- [x] Upload a raster glyph image.
+- [x] Select a crop rectangle in the image stage.
+- [x] Threshold the crop locally into a binary mask.
+- [x] Trace pixel boundaries into closed vector contours.
+- [x] Preserve counters through opposite contour winding.
+- [x] Fit cubic Bézier curves to traced contours.
+- [ ] Adaptive thresholding, denoising and crop zoom/rotation.
+- [ ] Robust diagonal-contact and noisy-scan handling.
 
-## Font output
-- [x] Compile CFF/PostScript OTF with cubic outlines.
-- [x] Parse the generated OTF and verify CFF outline format and cubic path commands.
-- [ ] Load generated OTF through FontFace in automated browser test.
-- [ ] Validate with OpenType Sanitizer / fontbakery.
-- [ ] Verify counters, winding and metrics in external desktop applications.
+## Font
+- [x] Compile cubic contours into CFF/PostScript OTF.
+- [x] Load generated OTF into browser specimen through FontFace.
+- [ ] OpenType Sanitizer/fontbakery validation.
+- [ ] External desktop application and OS installation validation.
+- [ ] Per-glyph metrics, bearings and kerning.
 
-## User journey
-- [x] Export/import source contours as project JSON.
-- [x] Download a compiled OTF and load it into the in-app specimen.
-- [x] Import a raster reference per glyph and compare binary raster masks.
-- [x] Coordinate-descent fitting against a whole-glyph raster objective with a segment-count penalty.
-- [x] Unit tests for rasterization, exact mask agreement, fitting output and malformed masks.
-- [ ] Antialiased / multiscale raster loss, affine alignment and subpixel refinement.
-- [ ] Editable Bézier handles, anchors, bearings, per-glyph advances and kerning.
-- [ ] WOFF2 and TTF export backends.
-- [ ] Playwright test covering draw → reconstruct → compile → FontFace render → download.
-- [ ] External OS install and desktop application specimen.
+## Product
+- [x] Minimal image-first workflow; no hand-drawing requirement.
+- [x] Findspot palette set sourced from original TOML palettes.
+- [x] Import/export editable project JSON.
+- [ ] Automated browser test for upload → crop → reconstruct → compile → preview → download.
