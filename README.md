@@ -1,37 +1,39 @@
 # Plasticine
 
-**A browser-based glyph reconstruction and font laboratory.**
-
-Draw glyph contours, infer compact cubic geometry, compile native CFF/PostScript OpenType fonts, and test the compiled font in a live browser specimen.
-
-## Run locally
-
-```sh
-npm install
-npm run dev
-```
+Image-first glyph reconstruction and CFF font compilation in the browser.
 
 ## Workflow
 
-1. Select a glyph from the Latin uppercase/lowercase and digit inventory.
-2. Draw closed silhouette contours. Draw counters/holes in the opposite direction.
-3. Optionally import a dark-on-light raster glyph reference. The image is thresholded locally and used as a binary pixel target; the original contours remain preserved.
-4. Adjust the simplicity penalty and curve tension. Without a reference, fitting uses geometric point-set distance; with one, coordinate descent minimizes whole-glyph pixel disagreement plus a segment-count penalty.
-5. Inspect the inferred cubic path in Vector view.
-6. Compile a CFF/PostScript OTF, load it into the live specimen and download it.
-7. Export the editable project JSON to preserve source contours.
+1. Open a raster image containing a glyph.
+2. Drag a crop around the glyph in the image stage.
+3. Adjust the foreground threshold and reconstruct. Pixel boundaries become closed vector contours; counters are retained as oppositely wound contours.
+4. Adjust curve simplicity and tension.
+5. Repeat for the required characters, compile a CFF/PostScript OTF, and test it in the specimen.
+6. Save the editable project as JSON.
 
-## Architecture and research
+Images are processed locally in the browser. No drawing by hand is required.
 
-- **Input:** pointer-sampled contours in glyph coordinates.
-- **Inference:** candidate simplification plus Catmull–Rom-to-cubic fitting.
-- **Objective:** geometric point-set fitting by default; optional 128×128 binary raster disagreement + explicit segment-count penalty when a reference image is loaded. This is not DiffVG.
-- **Canonical IR:** Unicode identity, advance width, contours and cubic Bézier segments.
-- **Compiler:** opentype.js emits CFF/PostScript OTF, retaining cubic curves.
-- **Proof:** browser `FontFace` loads the generated OTF and specimen text uses that loaded face.
+## Controls
 
-See [architecture](docs/architecture.md), [research assessment](docs/research.md), [end-to-end journey](docs/journey.md) and [acceptance checklist](docs/acceptance.md).
+- Open image — PNG, JPEG, WebP, BMP and browser-decodable image formats.
+- Crop — drag a rectangular selection over the displayed image.
+- Threshold — choose which pixels count as ink (dark-on-light source).
+- Reconstruct — trace the binary pixel boundary graph into vector contours.
+- Simplicity / curve tension — fit the traced boundaries to cubic Bézier segments.
+- Findspot palette — switch among the six palettes defined in 1suo/findspot.
 
-## Current scope
+## Implementation
 
-This is an initial vertical slice, not a finished type-design suite. Antialiased and multiscale raster optimization, discrete topology search, editable Bézier handles, per-glyph metrics, anchors, kerning, font QA, WOFF2/TTF backends and learned inference are follow-on milestones. See the journey document for implemented versus outstanding steps.
+The tracer extracts exposed pixel edges and follows closed loops. Non-zero winding preserves holes when contours have opposite orientation. The vector fitter then simplifies each loop and converts it to cubic Bézier geometry. This is direct binary boundary tracing, not a learned image-to-vector model and not DiffVG.
+
+The editor retains source contours in the project JSON. The source raster itself is not embedded. The compiler emits CFF/PostScript OTF with cubic outlines.
+
+## Development
+
+    npm install
+    npm run dev
+    npm test
+    npm run typecheck
+    npm run build
+
+See docs/architecture.md, docs/research.md, docs/journey.md and docs/acceptance.md.
