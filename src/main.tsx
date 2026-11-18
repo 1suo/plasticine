@@ -25,7 +25,6 @@ function App() {
   const [crop,setCrop] = useState<Crop>({x:50,y:50,w:400,h:400});
   const [drag,setDrag] = useState<Point|null>(null);
   const [threshold,setThreshold] = useState(180);
-  const [simplicity,setSimplicity] = useState(.4);
   const [tension,setTension] = useState(.8);
   const [family,setFamily] = useState("Plasticine");
   const [specimen,setSpecimen] = useState("Hamburgefontsiv 0123456789");
@@ -34,9 +33,9 @@ function App() {
   const [message,setMessage] = useState("Upload a glyph image. Select the crop, then reconstruct.");
   const svg = useRef<SVGSVGElement>(null);
   const raw = drawings.get(code) ?? [];
-  const glyph = useMemo(()=>makeGlyph(code,raw,simplicity,tension),[code,raw,simplicity,tension]);
+  const glyph = useMemo(()=>makeGlyph(code,raw,0.4,tension),[code,raw,tension]);
   const path = glyphPathData(glyph);
-  const all = useMemo(()=>[...drawings].map(([unicode,contours])=>makeGlyph(unicode,contours,simplicity,tension)).filter(g=>g.contours.length),[drawings,simplicity,tension]);
+  const all = useMemo(()=>[...drawings].map(([unicode,contours])=>makeGlyph(unicode,contours,0.4,tension)).filter(g=>g.contours.length),[drawings,tension]);
   const colors = palettes[palette];
   const imageRect = useMemo(()=>{if(!image)return{x:0,y:0,w:500,h:500};const scale=Math.min(500/image.naturalWidth,500/image.naturalHeight);const w=image.naturalWidth*scale,h=image.naturalHeight*scale;return{x:(500-w)/2,y:(500-h)/2,w,h};},[image]);
   const themeStyle = {
@@ -117,8 +116,6 @@ function App() {
         <section>
           <label>Threshold <output>{threshold}</output></label>
           <input type="range" min="0" max="255" value={threshold} onChange={e=>setThreshold(+e.target.value)}/>
-          <label>Simplicity <output>{simplicity.toFixed(2)}</output></label>
-          <input type="range" min="0" max="3" step=".05" value={simplicity} onChange={e=>setSimplicity(+e.target.value)}/>
           <label>Curve tension <output>{tension.toFixed(2)}</output></label>
           <input type="range" min="0" max="1.5" step=".05" value={tension} onChange={e=>setTension(+e.target.value)}/>
         </section>
