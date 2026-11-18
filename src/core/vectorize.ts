@@ -110,6 +110,63 @@ function segmentSamples(points: Point[], start: number, end: number): Point[] {
   return out;
 }
 
+function findSymmetryAxis(mask: Uint8Array, width: number, height: number, axis: "x" | "y"): number | null {
+  const extent = axis === "x" ? width : height;
+  const other = axis === "x" ? height : width;
+  let best = extent / 2, bestError = Infinity;
+  for (let center = extent * 0.38; center <= extent * 0.62; center += 0.5) {
+    let mismatches = 0, comparisons = 0;
+    for (let b = 0; b < other; b++) for (let a = 0; a < extent; a++) {
+      const mirror = Math.round(2 * center - a);
+      if (mirror <= a || mirror < 0 || mirror >= extent) continue;
+      const left = axis === "x" ? mask[b * width + a] : mask[a * width + b];
+      const right = axis === "x" ? mask[b * width + mirror] : mask[mirror * width + b];
+      if (left !== right) mismatches++;
+      comparisons++;
+    }
+    const error = comparisons ? mismatches / comparisons : 1;
+    if (error < bestError) { bestError = error; best = center; }
+  }
+  return bestError < 0.035 ? best * 500 / extent : null;
+}
+
+function enforceSymmetry(loops: Point[][], axis: "x" | "y", center: number): void {
+  const points = loops.flatMap(loop => loop.slice(0, -1));
+  const before = points.map(point => ({ x: point.x, y: point.y }));
+  const used = new Set<number>();
+  for (let i = 0; i < points.length; i++) {
+    if (used.has(i) || Math.abs(points[i][axis] - center) < 2.5) continue;
+    const target = 2 * center - points[i][axis];
+    let best = -1, bestDistance = 6;
+    for (let j = 0; j < points.length; j++) {
+      if (j === i || used.has(j)) continue;
+      const across = Math.abs(points[j][axis] - target);
+      const along = Math.abs(points[j][axis === "x" ? "y" : "x"] - points[i][axis === "x" ? "y" : "x"]);
+      const score = Math.hypot(across, along);
+      if (score < bestDistance) { bestDistance = score; best = j; }
+    }
+    if (best < 0) continue;
+    const value = (points[i][axis] + 2 * center - points[best][axis]) / 2;
+    points[i][axis] = value;
+    points[best][axis] = 2 * center - value;
+    used.add(i); used.add(best);
+  }
+  let offset = 0;
+  for (const loop of loops) {
+    const ring = loop.slice(0, -1);
+    for (let i = 0; i < ring.length; i++) {
+      const point = ring[i], next = ring[(i + 1) % ring.length];
+      const old = before[offset + i], oldNext = before[offset + (i + 1) % ring.length];
+      if (point.segment) {
+        point.segment.c1 = { x: point.segment.c1.x + point.x - old.x, y: point.segment.c1.y + point.y - old.y };
+        point.segment.c2 = { x: point.segment.c2.x + next.x - oldNext.x, y: point.segment.c2.y + next.y - oldNext.y };
+      }
+    }
+    loop[loop.length - 1] = { ...ring[0] };
+    offset += ring.length;
+  }
+}
+
 function snapGrid(loops: Point[][], tolerance = 1.2): Point[][] {
   const points = loops.flatMap(loop => loop.slice(0, -1));
   const before = points.map(point => ({ x: point.x, y: point.y }));
@@ -193,5 +250,5 @@ export function vectorizeBitmap(mask: Uint8Array, width: number, height: number)
     }
     return [...anchors, { ...anchors[0] }];
   }).filter(loop => loop.length >= 3);
-  return snapGrid(loops);
+  const gridAligned = snapGrid(loops);\n  const verticalAxis = findSymmetryAxis(mask, width, height, "x");\n  const horizontalAxis = findSymmetryAxis(mask, width, height, "y");\n  if (verticalAxis !== null) enforceSymmetry(gridAligned, "x", verticalAxis);\n  if (horizontalAxis !== null) enforceSymmetry(gridAligned, "y", horizontalAxis);\n  return gridAligned;
 }
