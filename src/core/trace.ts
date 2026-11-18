@@ -30,13 +30,13 @@ export function traceBitmap(mask: Uint8Array, width: number, height: number): Po
     const points: Point[] = [];
     let current = start;
     const first = key(edges[start].a);
-    let guard = 0;
+    let guard = 0, closed = false;
     while (!edges[current].used && guard++ <= edges.length + 1) {
       const edge = edges[current];
       edge.used = true;
       points.push(edge.a);
       const end = key(edge.b);
-      if (end === first) break;
+      if (end === first) { closed = true; break; }
       const candidates = (outgoing.get(end) ?? []).filter(i => !edges[i].used);
       if (!candidates.length) break;
       const dx = edge.b.x - edge.a.x, dy = edge.b.y - edge.a.y;
@@ -47,7 +47,7 @@ export function traceBitmap(mask: Uint8Array, width: number, height: number): Po
       };
       current = candidates.sort((a, b) => turnScore(b) - turnScore(a))[0];
     }
-    if (points.length >= 3 && key(edges[(current === start ? start : start)].a) === first) {
+    if (closed && points.length >= 3) {
       const scaled = points.map(p => ({ x: p.x / width * 500, y: p.y / height * 500 }));
       loops.push([...scaled, scaled[0]]);
     }
