@@ -21,7 +21,7 @@ The current deterministic CV stage includes:
 - tangent-based corner detection with non-maximum suppression;
 - PCA/total-least-squares line fitting;
 - line-versus-curve classification by residual;
-- horizontal/vertical orientation recognition and coordinate snapping;
+- horizontal/vertical orientation recognition, orthogonal snapping and cross-contour grid-coordinate clustering;
 - cubic Bézier least-squares fitting for curved spans;
 - preservation of contour winding and counters.
 
