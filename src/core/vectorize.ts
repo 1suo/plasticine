@@ -132,9 +132,10 @@ export function vectorizeBitmap(mask: Uint8Array, width: number, height: number)
     const spans = corners.map((start, i) => {
       const end = corners[(i + 1) % corners.length] + (i === corners.length - 1 ? samples.length : 0);
       const pts = segmentSamples(samples, start, end);
-      const line = fitLine(pts);
+      const trim = Math.floor(pts.length * 0.16);
+      const line = fitLine(pts.slice(trim, Math.max(trim + 2, pts.length - trim)));
       const axis = nearestAxis(line.angle);
-      return { pts, line, axis, straight: line.error < 1.35 };
+      return { pts, line, axis, straight: line.error < 1.6 };
     });
     const snapped = corners.map((corner, i) => {
       const previous = spans[(i - 1 + spans.length) % spans.length];
