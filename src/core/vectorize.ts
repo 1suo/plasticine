@@ -110,11 +110,45 @@ function segmentSamples(points: Point[], start: number, end: number): Point[] {
   return out;
 }
 
+function snapGrid(loops: Point[][], tolerance = 2.6): Point[][] {
+  const points = loops.flatMap(loop => loop.slice(0, -1));
+  const before = points.map(point => ({ x: point.x, y: point.y }));
+  const align = (axis: "x" | "y") => {
+    const ordered = points.map((point, index) => ({ index, value: point[axis] })).sort((a, b) => a.value - b.value);
+    for (let start = 0; start < ordered.length;) {
+      let end = start + 1;
+      while (end < ordered.length && ordered[end].value - ordered[end - 1].value <= tolerance) end++;
+      if (end - start > 1) {
+        const mean = ordered.slice(start, end).reduce((sum, item) => sum + item.value, 0) / (end - start);
+        for (let i = start; i < end; i++) points[ordered[i].index][axis] = mean;
+      }
+      start = end;
+    }
+  };
+  align("x");
+  align("y");
+  let offset = 0;
+  for (const loop of loops) {
+    const ring = loop.slice(0, -1);
+    for (let i = 0; i < ring.length; i++) {
+      const point = ring[i], next = ring[(i + 1) % ring.length];
+      const old = before[offset + i], oldNext = before[offset + (i + 1) % ring.length];
+      if (point.segment) {
+        point.segment.c1 = { x: point.segment.c1.x + point.x - old.x, y: point.segment.c1.y + point.y - old.y };
+        point.segment.c2 = { x: point.segment.c2.x + next.x - oldNext.x, y: point.segment.c2.y + next.y - oldNext.y };
+      }
+    }
+    loop[loop.length - 1] = { ...ring[0] };
+    offset += ring.length;
+  }
+  return loops;
+}
+
 /** CV reconstruction: contour conditioning, corner/junction detection, line-vs-curve classification,
  * orthogonal snapping and least-squares cubic fitting. Pixel edges are observations, never output geometry. */
 export function vectorizeBitmap(mask: Uint8Array, width: number, height: number): Point[][] {
   const traced = traceBitmap(mask, width, height);
-  return traced.map(loop => {
+  const loops = traced.map(loop => {
     const samples = smooth(resampleClosed(loop, 2.2));
     let corners = detectCorners(samples);
     if (corners.length < 3) {
@@ -159,4 +193,5 @@ export function vectorizeBitmap(mask: Uint8Array, width: number, height: number)
     }
     return [...anchors, { ...anchors[0] }];
   }).filter(loop => loop.length >= 3);
+  return snapGrid(loops);
 }
