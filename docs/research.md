@@ -1,32 +1,45 @@
-# Research assessment and implementation plan
+# Research assessment
 
-## Relevant methods and what they actually do
+## Selected reconstruction engine: img2bez
 
-- **DeepVecFont** (Wang & Lian, SIGGRAPH Asia 2021) and **DeepVecFont-v2** (CVPR 2023) are font-specific dual-modality synthesis systems. They consume reference glyphs in raster and vector forms to synthesize or complete a font. They are the strongest candidates for cross-glyph style transfer and font completion, but are not standalone single-raster-glyph vectorizers. [v1 code](https://github.com/yizhiwang96/deepvecfont) · [v2 code](https://github.com/yizhiwang96/deepvecfont-v2)
-- **Deep Vectorization of Technical Drawings** (Egiazarian et al., ECCV 2020) uses image cleaning, transformer-based primitive proposals and geometric refinement. Its decomposition is highly relevant, but the training distribution and primitive targets are technical drawings rather than typography. [Paper and code](https://artonson.github.io/publications/2020-deep-vectorization/)
-- **Vitruvion** (Seff et al., ICLR 2022) generates CAD sketch primitives and relational constraints, and can condition on hand-drawn sketch images. It offers a constraint-graph paradigm (parallel, perpendicular, coincidence, tangency), not a ready-made font reconstruction model. [Project](https://lips.cs.princeton.edu/vitruvion/)
-- **Im2Vec** (Reddy, CVPR 2021 workshop) learns vector graphics from raster supervision through differentiable rendering. It is useful for topology-aware raster-to-vector learning, but does not enforce typographic design intent by itself. [Paper](https://openaccess.thecvf.com/content/CVPR2021W/SketchDL/html/Reddy_Im2Vec_Synthesizing_Vector_Graphics_Without_Vector_Supervision_CVPRW_2021_paper.html)
-- **Fidelity vs. Simplicity** (Favreau, Lafarge and Bousseau, ACM TOG 2016) optimizes compact curve networks with fidelity and simplicity objectives and reasons about junction topology. [Paper summary](https://emyu.gitlabpages.inria.fr/blog/2020/03/25/fidelity-vs-simplicity/)
-- **DiffVG** (Li et al., ACM TOG / SIGGRAPH Asia 2020) differentiates vector rasterization so vector parameters can be optimized against raster losses. Discrete topology changes still require a separate proposal/search mechanism. [Paper](https://people.csail.mit.edu/tzumao/diffvg/diffvg.pdf)
-- **DeepSVG** is a hierarchical vector-graphics model, not a font-specific architecture. [Paper](https://arxiv.org/abs/2007.11301)
+[img2bez](https://github.com/fontgarden/img2bez) is the closest match to Plasticine's actual task: raster glyphs to font-ready Bézier outlines. It is not a generic logo tracer. Its structural output targets type-design conventions: extrema, corners, inflections, horizontal/vertical handles, smooth joins, minimal point counts, winding and grid alignment.
 
-## Current implementation
+Its four-stage pipeline is:
+1. Subpixel boundary extraction from grayscale antialiasing.
+2. Structural feature placement (corners, extrema, tangent points and inflections).
+3. Constrained cubic fitting with candidate scoring against source pixels.
+4. Font cleanup: winding, grid snapping, H/V handle correction, G2 harmonization and corner reconstruction.
 
-The browser app now has a deterministic geometric CV stage: boundary conditioning, tangent-based corner detection, line/curve classification, total-least-squares line fitting, orthogonal snapping, cross-contour grid alignment, and least-squares cubic fitting. It retains explicit contour topology and compiles the inferred geometry to CFF OTF.
+It also has optional tiny learned decision heads. Plasticine enables the learned site head in browser WASM; it does not use a large generative model or a remote inference service. The upstream project reports 0.964 mean structural score on its basic-Latin reference-font evaluation (62 glyphs); that is the upstream benchmark, not an independently reproduced Plasticine score. [Repository and technical details](https://github.com/fontgarden/img2bez) · [Design rationale and demo](https://elih.net/blog/img2bez/).
 
-**No pretrained network from the papers above is integrated yet.** In particular, the current stage is not DeepVecFont, Im2Vec, the technical-drawing transformer, or DiffVG. Those require their own runtime, weights, training-data compatibility and inference adapters. The app must not claim otherwise.
+## Other supplied research and its role
 
-## Next engineering stages
+- **DeepVecFont / DeepVecFont-v2** (SIGGRAPH Asia 2021 / CVPR 2023) are font-specific dual-modality synthesis systems. They consume reference glyphs in raster and vector forms to synthesize or complete a font. They are candidates for future multi-glyph style transfer and completion, not single-raster-glyph tracing. [v1](https://github.com/yizhiwang96/deepvecfont) · [v2](https://github.com/yizhiwang96/deepvecfont-v2)
+- **Deep Vectorization of Technical Drawings** (Egiazarian et al., ECCV 2020) separates image cleaning, neural primitive proposals and geometric refinement. Its learned primitive proposals target technical drawings; img2bez is a much closer font-domain solution.
+- **Vitruvion** (Seff et al., ICLR 2022) generates CAD sketch primitives and relational constraints. Its constraint-graph ideas are relevant to future cross-glyph design constraints, but it is not a typography model.
+- **Im2Vec** (Reddy, CVPR 2021 workshop) learns vector graphics from raster supervision through differentiable rendering. It is useful research on topology and raster losses, but does not enforce type-design structure.
+- **Fidelity vs. Simplicity** (Favreau, Lafarge and Bousseau, ACM TOG 2016) optimizes compact curve networks with fidelity and simplicity objectives and reasons about junction topology.
+- **DiffVG** (Li et al., ACM TOG / SIGGRAPH Asia 2020) differentiates vector rasterization so vector parameters can be optimized against raster losses. img2bez has its own raster refinement stage, avoiding the need to integrate DiffVG as the first implementation step.
+- **DeepSVG** is a hierarchical vector-graphics model, not a font-specific architecture.
 
-1. Build a labeled glyph benchmark with raster inputs and reference outlines; report contour topology, IoU, boundary distance, primitive count and font-rendering quality.
-2. Add robust preprocessing: adaptive thresholding, deskew, background removal, component analysis and subpixel boundary estimation.
-3. Improve geometric constraints: shared stem widths, repeated parallel edges, symmetry, baselines, cap/x-height, overshoot and junction constraints.
-4. Add global discrete split/merge/topology proposals and a raster-rendering objective for continuous curve refinement.
-5. Evaluate DeepVecFont-v2 as a multi-reference glyph completion/style-consistency backend, not as the single-glyph tracer.
-6. Evaluate the technical-drawing vectorizer's primitive proposal network only after adapting its training data and primitive vocabulary to filled glyph outlines.
+## Plasticine integration
+
+- Upstream source is pinned to `fontgarden/img2bez@278aa3683f1e7243158c82b1bdcdafec6436cfc6`.
+- Its upstream WASM wrapper is embedded in this repository with the upstream SPDX attribution.
+- `siteHead` is enabled; `cornerHead` is disabled.
+- The WASM package is built automatically before Vite dev/build via `scripts/build-wasm.mjs`.
+- The adapter preserves UFO point semantics and translates line, cubic and quadratic segments into the app's cubic Glyph IR.
+
+## Remaining work
+
+1. Validate real-world scans and generated glyphs against a labeled corpus, not only synthetic adapter tests.
+2. Add profile/style selection (wild/clean/photo; grotesk/old-style/geometric/brush/nib/qalam) where it materially improves input classes.
+3. Establish cross-glyph metrics and constraints: cap height, x-height, baseline, overshoot, shared stem widths, sidebearings and spacing.
+4. Add full-specimen segmentation and batch tracing.
+5. Validate exported OTF with OpenType Sanitizer/fontbakery and external font editors.
 
 ## Bibliography corrections
 
 - Vitruvion is Seff et al., ICLR 2022, not CVPR 2022.
 - PolyFit (Dominici et al., 2020) is distinct from Fidelity vs. Simplicity (Favreau et al., 2016).
-- DiffVG is a differentiable vector rasterizer; it does not solve discrete topology changes by itself.
+- DiffVG does not solve discrete topology changes by itself.
