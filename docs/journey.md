@@ -5,7 +5,7 @@
 | 1. Choose glyph | Select a character | Opens its existing vector result |
 | 2. Supply source | Upload an image | Displays it in the crop stage |
 | 3. Isolate glyph | Drag a crop rectangle | Defines the source region |
-| 4. Reconstruct | Adjust threshold and press Reconstruct | Runs img2bez WASM with learned site classification and raster refinement |
+| 4. Reconstruct | Choose source profile, adjust threshold and press Reconstruct | Runs img2bez WASM with learned site classification and raster refinement |
 | 5. Refine | Adjust curve tension | Adjusts inferred cubic handles |
 | 6. Build typeface | Repeat for characters and compile | Emits CFF/PostScript OTF |
 | 7. Verify | Enter specimen text | Renders using the generated OTF via FontFace |
@@ -24,7 +24,7 @@
 ## Outstanding
 
 - Crop zoom/pan and rotation.
-- Profile/style selector for wild/clean/photo and drawing styles.
+- Drawing-style selector (basic/grotesk/old-style/geometric/brush/nib/qalam).
 - Full specimen segmentation and batch tracing.
 - Cross-glyph baseline, cap/x-height, stem-width, sidebearing and spacing consistency.
 - OpenType Sanitizer/fontbakery validation and external desktop application checks.
