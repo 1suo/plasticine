@@ -78,8 +78,7 @@ function nearestAxis(angle: number, tolerance = 0.14): "horizontal" | "vertical"
   return null;
 }
 
-function fitCubic(samples: Point[]): Segment {
-  const p0 = samples[0], p3 = samples[samples.length - 1];
+function fitCubic(samples: Point[], p0: Point, p3: Point): Segment {
   const unit = (a: Point, b: Point): Point => {
     const n = distance(a, b) || 1;
     return { x: (b.x - a.x) / n, y: (b.y - a.y) / n };
@@ -90,19 +89,18 @@ function fitCubic(samples: Point[]): Segment {
   let length = 0;
   for (let i = 1; i < samples.length; i++) { length += distance(samples[i - 1], samples[i]); ts.push(length); }
   for (let i = 0; i < ts.length; i++) ts[i] = length ? ts[i] / length : i / (ts.length - 1);
-  let aa = 0, ab = 0, bb = 0, ax = 0, ay = 0, bx = 0, by = 0;
+  let aa = 0, ab = 0, bb = 0, ar = 0, br = 0;
   for (let i = 0; i < samples.length; i++) {
     const t = ts[i], u = 1 - t, b0 = u * u * u, b1 = 3 * u * u * t, b2 = 3 * u * t * t, b3 = t * t * t;
     const rx = samples[i].x - b0 * p0.x - b3 * p3.x - (b1 + b2) * (p0.x + p3.x) / 2;
     const ry = samples[i].y - b0 * p0.y - b3 * p3.y - (b1 + b2) * (p0.y + p3.y) / 2;
     const a = { x: b1 * t0.x, y: b1 * t0.y }, b = { x: -b2 * t1.x, y: -b2 * t1.y };
     aa += a.x * a.x + a.y * a.y; ab += a.x * b.x + a.y * b.y; bb += b.x * b.x + b.y * b.y;
-    ax += a.x * rx + a.y * ry; bx += b.x * rx + b.y * ry;
-    ay += a.x * rx + a.y * ry; by += b.x * rx + b.y * ry;
+    ar += a.x * rx + a.y * ry; br += b.x * rx + b.y * ry;
   }
   const det = aa * bb - ab * ab;
-  let alpha0 = det > 1e-8 ? (ax * bb - bx * ab) / det : length / 3;
-  let alpha1 = det > 1e-8 ? (bx * aa - ax * ab) / det : length / 3;
+  let alpha0 = det > 1e-8 ? (ar * bb - br * ab) / det : length / 3;
+  let alpha1 = det > 1e-8 ? (br * aa - ar * ab) / det : length / 3;
   alpha0 = Math.max(0, Math.min(length, alpha0)); alpha1 = Math.max(0, Math.min(length, alpha1));
   return { kind: "curve", c1: { x: p0.x + t0.x * alpha0, y: p0.y + t0.y * alpha0 }, c2: { x: p3.x - t1.x * alpha1, y: p3.y - t1.y * alpha1 } };
 }
@@ -139,23 +137,26 @@ export function vectorizeBitmap(mask: Uint8Array, width: number, height: number)
       const axis = nearestAxis(line.angle);
       return { pts, line, axis, straight: line.error < 1.35 };
     });
-    const anchors: (Point & { corner?: boolean; segment?: Segment })[] = corners.map(i => ({ ...samples[i], corner: true }));
+    const snapped = corners.map((corner, i) => {
+      const previous = spans[(i - 1 + spans.length) % spans.length];
+      const next = spans[i];
+      const original = samples[corner];
+      let x = original.x, y = original.y;
+      if (previous.straight && previous.axis === "vertical") x = previous.line.x;
+      if (next.straight && next.axis === "vertical") x = next.line.x;
+      if (previous.straight && previous.axis === "horizontal") y = previous.line.y;
+      if (next.straight && next.axis === "horizontal") y = next.line.y;
+      return { x, y };
+    });
+    const anchors: (Point & { corner?: boolean; segment?: Segment })[] = snapped.map(p => ({ ...p, corner: true }));
     for (let i = 0; i < spans.length; i++) {
-      const span = spans[i], next = (i + 1) % corners.length;
-      let p0 = { ...samples[corners[i]] }, p1 = { ...samples[corners[next]] };
-      if (span.straight && span.axis === "horizontal") {
-        const y = span.line.y; p0.y = y; p1.y = y;
-      } else if (span.straight && span.axis === "vertical") {
-        const x = span.line.x; p0.x = x; p1.x = x;
-      }
-      anchors[i] = { ...p0, corner: true };
+      const span = spans[i], p0 = snapped[i], p1 = snapped[(i + 1) % snapped.length];
       if (span.straight) {
         anchors[i].segment = { kind: "line", c1: { x: p0.x + (p1.x - p0.x) / 3, y: p0.y + (p1.y - p0.y) / 3 }, c2: { x: p0.x + 2 * (p1.x - p0.x) / 3, y: p0.y + 2 * (p1.y - p0.y) / 3 } };
       } else {
-        const fitted = fitCubic(span.pts);
-        anchors[i].segment = fitted;
+        anchors[i].segment = fitCubic(span.pts, p0, p1);
       }
     }
-    return anchors;
+    return [...anchors, { ...anchors[0] }];
   }).filter(loop => loop.length >= 3);
 }
