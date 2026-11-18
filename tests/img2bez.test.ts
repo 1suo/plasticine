@@ -38,9 +38,9 @@ describe("img2bez UFO point stream adapter", () => {
         { x: 0, y: 100, type: "line" },
       ] }] },
     });
-    const glyph = makeGlyph(111, traced.contours, 0.4, 0.8);
+    const glyph = makeGlyph(111, traced.contours, 0.4, 1.0);
     const curve = glyph.contours[0].curves[0];
     expect(curve.p1).toEqual({ x: 200 / 3, y: 400 });
-    expect(curve.p2).toEqual({ x: 100, y: 400 - 200 / 3 });
+    expect(curve.p2).toEqual({ x: 100, y: 300 + 200 / 3 });
   });
 });
