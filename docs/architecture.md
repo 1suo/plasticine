@@ -1,35 +1,34 @@
 # Architecture
 
-Plasticine is a local-first glyph-to-font laboratory. Raw pointer contours are retained independently from fitted geometry, so inference can be rerun without losing the user's drawing.
+Plasticine is an image-first glyph-to-font tool. The source of truth for reconstruction is the uploaded raster crop; the user does not draw contours manually.
 
 ## Pipeline
 
-1. Pointer input records closed glyph contours in a 500×500 coordinate space.
-2. Candidate simplification applies Ramer–Douglas–Peucker at several tolerances.
-3. Each candidate is fitted to cubic Bézier segments using Catmull–Rom-derived handles.
-4. The default fitting objective uses symmetric sampled point-set distance plus a segment-count penalty:
-   `geometricObjective = sampledContourDistance + λ × segmentCount × 8`.
-5. An optional reference image is decoded locally, stretched to the 500×500 glyph space, and thresholded at luminance 180 into a 128×128 binary ink mask. A scanline point-in-path rasterizer renders the candidate cubic contours with non-zero winding semantics. Coordinate descent chooses among per-contour simplification candidates against the whole-glyph objective:
-   `rasterObjective = differingPixels / totalPixels + λ × segmentCount × 0.0005`.
-6. Canonical Glyph IR stores Unicode identity, advance width, contour topology and cubic Bézier geometry.
-7. opentype.js emits an OpenType CFF font. CFF Type 2 charstrings retain cubic outlines; this is an OTF, not a TTF.
-8. The browser loads the generated OTF using FontFace, renders the live specimen and downloads the font.
+1. The user uploads a browser-decodable raster image.
+2. A crop rectangle selects one glyph. The selected source rectangle is sampled into a 256×256 canvas.
+3. The threshold control converts dark pixels to a binary foreground mask.
+4. The pixel tracer emits directed exposed pixel edges. Edges are stitched into closed loops. Outer contours and counters naturally have opposite winding.
+5. Each loop is mapped into 500×500 glyph coordinates, simplified with Ramer–Douglas–Peucker, and fitted with cubic Bézier segments.
+6. The canonical Glyph IR stores Unicode identity, advance width, contours and cubic geometry.
+7. opentype.js compiles the glyphs into a CFF/PostScript OTF.
+8. The browser loads the generated OTF through FontFace for specimen preview and downloads it.
 
-## Raster fitting: exact scope
+## Raster tracing
 
-This is raster-guided fitting of user-provided contours, not automatic image tracing. The user still draws the initial contour topology. The reference image guides the choice of simplification candidates; the optimizer does not move Bézier control points continuously, infer missing contours, or propose holes/components. The binary objective has no antialiasing, multiscale term, affine registration or subpixel refinement. It is a deterministic baseline, not DiffVG.
+This is actual raster-to-contour reconstruction: the source crop is thresholded and its pixel boundaries are traced automatically. It is deterministic and does not require the user to draw initial paths.
 
-Reference images remain in browser memory and are not embedded in project JSON. Per-glyph references are used when compiling; only the active glyph's reference is shown in the editor.
+Current constraints:
+- Input is a single glyph crop, dark ink on a light background.
+- Thresholding is global, not adaptive.
+- Pixel boundaries are exact at the sampled 256×256 resolution; there is no antialiasing-aware or subpixel optimization.
+- Diagonally touching components and noisy scans can create ambiguous boundary junctions.
+- No learned denoising, component classification, affine deskewing, baseline detection or automatic glyph segmentation is included.
+- Curve fitting simplifies traced boundaries; it does not yet optimize Bézier control points against a differentiable raster loss.
 
-## Representation
+## Findspot palettes
 
-SVG is a view/interchange representation, not the canonical data model. Cubic geometry stays first-class in IR and is not converted to quadratics for the current CFF output. The compiler owns output-format concerns.
+The UI palette definitions are copied from the source TOML files in 1suo/findspot/palettes/: Alexandria, Babylon, Knossos, Petra, Tikal and Troy. Findspot is the palette source of truth.
 
-## Current limitations
+## Font output
 
-- The reconstruction backend is deterministic geometry, not a trained Vitruvion, Im2Vec, DeepSVG or DeepVecFont model.
-- Discrete topology optimization (split/merge contours, junction hypotheses, hole classification) is not implemented.
-- Drawn contours are closed silhouettes. Counter winding must be checked; robust topology validation is pending.
-- Glyph advance width is currently a shared default. Per-glyph bearings, metrics, anchors, kerning and variable-font axes are not yet implemented.
-- The live preview uses FontFace in the browser. Automated CI verifies geometry, raster fitting, CFF output parsing, typecheck and production build; it does not automate OS-level installation or external application specimens.
-- WOFF2 export, font QA/repair, editable Bézier handles and learned inference backends remain future work.
+Cubic geometry stays first-class in IR and is compiled to CFF Type 2 charstrings. The output is OTF, not TTF. Browser preview verifies the generated font through FontFace; external font QA and OS installation tests remain separate acceptance steps.
