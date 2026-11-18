@@ -1,43 +1,46 @@
 # Architecture
 
-Plasticine is an image-first glyph reconstruction and font compilation tool. The uploaded raster is evidence for a geometric model; traced pixel edges are not intended to become the final outline.
+Plasticine is an image-first glyph reconstruction and CFF font compilation tool. It embeds the font-specific [img2bez](https://github.com/fontgarden/img2bez) Rust engine through its upstream WebAssembly bindings.
 
 ## Pipeline
 
-1. Upload and crop a glyph raster.
-2. Rasterize the crop to a normalized 256×256 dark-ink mask.
-3. Extract connected boundary loops and preserve counter winding.
-4. Resample and smooth the observed boundary to suppress pixel-grid noise.
-5. Detect corner candidates from scale-aware changes in boundary tangent.
-6. Partition each loop into spans and classify each span as a line or a curve using total-least-squares line fitting and maximum orthogonal residual.
-7. Snap near-horizontal and near-vertical line spans to shared orthogonal coordinates; preserve shared endpoints at corners.
-8. Fit non-linear spans with least-squares cubic Bézier controls.
-9. Store line/curve primitive intent in the glyph geometry and compile cubic outlines to CFF/PostScript OTF.
+1. Upload a raster and select a glyph crop.
+2. Resample the crop to a 1024×1024 grayscale PNG while preserving its aspect ratio.
+3. Pass the original grayscale edge information and the selected threshold to img2bez WASM. The learned site head is enabled.
+4. img2bez extracts subpixel boundaries from antialiased pixels.
+5. It detects structural features: corners, extrema, tangent points and inflections.
+6. It proposes and fits a compact set of lines and cubic curves, constraining handles to horizontal/vertical directions at extrema.
+7. It refines the vector against the source raster, merges unnecessary segments, restores stroke junction flats, harmonizes smooth joins and snaps coordinates to a grid.
+8. It fixes contour winding so counters remain holes.
+9. Plasticine converts the UFO-ordered on/off-curve point stream to its cubic Glyph IR, then compiles CFF/PostScript OTF.
 
-## Geometric inference
+## Model and runtime
 
-The current deterministic CV stage includes:
-- boundary resampling and local smoothing;
-- tangent-based corner detection with non-maximum suppression;
-- PCA/total-least-squares line fitting;
-- line-versus-curve classification by residual;
-- horizontal/vertical orientation recognition, orthogonal snapping and cross-contour grid-coordinate clustering;
-- cubic Bézier least-squares fitting for curved spans;
-- preservation of contour winding and counters.
+- Upstream engine: `fontgarden/img2bez`, pinned to commit `278aa3683f1e7243158c82b1bdcdafec6436cfc6`.
+- Runtime: browser WebAssembly; no inference server, GPU or remote image upload.
+- Learned component: `siteHead: true`, the upstream four-class structural site head. The separate corner head remains disabled.
+- The rest of the pipeline is procedural: subpixel extraction, feature placement, constrained Bézier fitting, raster-loss refinement, grid snapping and contour cleanup.
+- WASM is built from `wasm/Cargo.toml` by `scripts/build-wasm.mjs`; `predev` and `prebuild` ensure assets exist before Vite starts or builds.
+- Upstream license is Apache-2.0 OR MIT; the Rust wrapper retains the upstream SPDX notice.
 
-The pixel tracer is now an observation extractor. Final output consists of a small set of geometric primitives, not one segment per pixel edge.
+## Geometry adapter
 
-## Model boundary and remaining work
+img2bez emits UFO point order: off-curve controls precede the on-curve point they lead into, and the first on-curve point carries the closing segment type. Plasticine converts each segment into a cubic:
+- lines become exact linear cubic segments;
+- cubics retain their two off-curve controls;
+- quadratic segments are converted exactly to equivalent cubic controls.
 
-No pretrained neural model is currently shipped or executed by the browser app. This is deliberate rather than implied integration:
-- DeepVecFont/v2 is a font-completion/synthesis model conditioned on reference glyphs in raster and vector modalities; it is a candidate for cross-glyph style inference and completion, not a drop-in single-glyph tracer.
-- Deep Vectorization of Technical Drawings has the most transferable pipeline structure (cleanup, primitive proposals, geometric refinement), but its released model is trained for technical line drawings and requires a font-specific adaptation and runtime.
-- Vitruvion predicts parametric sketch primitives and constraints from CAD sketch data, with image conditioning; it is not a trained typography model.
-- Im2Vec supplies a differentiable raster-supervised vector-generation approach, but requires model training/inference and does not guarantee typographic topology.
-- DiffVG-style raster loss, global topology proposals, shared stroke-width inference, baseline/cap/x-height detection, symmetry, overshoot and cross-glyph constraints are not yet implemented.
+The adapter converts img2bez's y-up font coordinates into the app's y-down 500-unit glyph view. The returned advance width is retained per glyph and exported with the project.
 
-The current CV implementation is a geometric baseline and must be validated on a glyph corpus before claiming production-quality reconstruction. In particular, diagonal contacts, noisy scans, very small counters, complex junctions and heavily stylized letterforms need dedicated handling.
+## Limits
+
+- The current input flow handles one glyph crop at a time; it does not segment a full font specimen automatically.
+- The default profile is `wild` with the basic drawing style. Photo scans and unusual scripts may need profile/style controls.
+- The site head is an optional learned structural classifier, not a generative glyph model.
+- DeepVecFont/v2 remains a candidate for multi-reference font completion and style transfer; it is not required for single-glyph tracing.
+- Cross-glyph stem-width, baseline, x-height, sidebearing and kerning consistency are not yet solved globally.
+- Browser font preview is not a substitute for OpenType Sanitizer, fontbakery or external desktop validation.
 
 ## Font output
 
-Cubic geometry is compiled to CFF Type 2 charstrings. The output is OTF, not TTF. Browser FontFace preview is not a substitute for external font QA or installation tests.
+Cubic geometry is compiled to CFF Type 2 charstrings. The output is OTF, not TTF. Browser FontFace preview verifies that the generated font loads in the page.
