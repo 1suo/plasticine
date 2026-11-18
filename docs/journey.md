@@ -1,0 +1,45 @@
+# End-to-end user journey (CJM)
+
+The intended outcome is not an SVG. It is a font that survives compilation, installation and use in ordinary software.
+
+| Stage | User action / question | System responsibility | Deliverable / proof |
+|---|---|---|---|
+| 1. Typeface setup | Name the family and choose the character set | Store family metadata, glyph inventory and design-space metrics | Editable font project |
+| 2. Draw | Draw glyph contours with pointer, stylus or touch | Capture raw strokes, show baseline/cap/x-height guides, preserve source | Raw contour data per Unicode glyph |
+| 3. Reconstruct | Watch a compact outline appear | Infer topology, fit primitives/curves and show fidelity/complexity trade-off | Canonical Glyph IR |
+| 4. Inspect and correct | Fix handles, joins, counters and proportions | Expose contour graph, Bézier controls, tangent constraints and metric controls | Reviewed glyph outlines |
+| 5. Harmonize | Compare related glyphs and spacing | Enforce consistent stem/height/overshoot conventions; set advances and bearings | Coherent glyph set |
+| 6. Compile | Build the typeface | Validate glyph mapping, contour winding, metrics and OpenType tables; emit OTF/TTF/WOFF2 | Installable font binaries |
+| 7. Preview | Type real text and inspect specimens | Load the compiled binary, not the editor paths; test combinations and fallback behavior | Browser-rendered specimen |
+| 8. Install / use IRL | Install the downloaded font in the OS or design tools | Provide OS-specific instructions and a test specimen | Font visible in ordinary apps |
+| 9. Iterate / deliver | Reopen project, revise and export | Preserve source strokes, IR and build settings; support repeatable compilation | Portable editable project + final font |
+
+## Current vertical slice
+
+Implemented now:
+- Character inventory for Latin uppercase/lowercase and digits.
+- Multi-contour pointer drawing and per-glyph source preservation.
+- Deterministic simplification and cubic fitting.
+- Explicit sampled geometric fidelity plus segment-count penalty.
+- Canonical IR and JSON project import/export.
+- CFF/PostScript OTF compilation.
+- FontFace live specimen preview and automatic OTF download.
+- CI checks for typecheck, geometry tests, CFF parseability and production build.
+
+Not implemented yet:
+- Reference-image import and raster-mask fidelity loss.
+- Robust hole/winding/topology inference and discrete split/merge search.
+- Editable Bézier handles, constraints, anchors, bearings and per-glyph advances.
+- Cross-glyph consistency/spacing and kerning.
+- Automated OTS/fontbakery validation and Playwright end-to-end browser test.
+- OS installation integration or proof in external desktop apps.
+- WOFF2 and TTF backends.
+
+## Manual real-world check
+
+1. Draw at least A, O, S, R, a, g, i, m and 8. Draw counters in the opposite direction.
+2. Compile and save the downloaded `.otf`.
+3. Install the OTF using the operating system's font installer (Linux desktop: open the file in the font viewer or copy it into `~/.local/share/fonts/`, then run `fc-cache -f`; macOS: open in Font Book; Windows: right-click and choose Install).
+4. Restart the target application if it caches its font list.
+5. Test a specimen containing round, diagonal, narrow, wide and counter-bearing glyphs; compare it with the browser specimen.
+6. Reopen the exported Plasticine JSON project and verify that the original contours remain editable.
