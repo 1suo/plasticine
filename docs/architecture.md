@@ -1,46 +1,39 @@
 # Architecture
 
-Plasticine is an image-first glyph reconstruction and CFF font compilation tool. It embeds the font-specific [img2bez](https://github.com/fontgarden/img2bez) Rust engine through its upstream WebAssembly bindings.
+Plasticine combines a layered black-and-white glyph canvas with font-oriented raster-to-vector reconstruction and CFF font compilation.
 
-## Pipeline
+## Authoring canvas
 
-1. Upload a raster and select a glyph crop.
-2. Resample the crop to a 1024×1024 grayscale PNG while preserving its aspect ratio.
-3. Pass the original grayscale edge information and the selected threshold to img2bez WASM. The learned site head is enabled.
-4. img2bez extracts subpixel boundaries from antialiased pixels.
-5. It detects structural features: corners, extrema, tangent points and inflections.
-6. It proposes and fits a compact set of lines and cubic curves, constraining handles to horizontal/vertical directions at extrema.
-7. It refines the vector against the source raster, merges unnecessary segments, restores stroke junction flats, harmonizes smooth joins and snaps coordinates to a grid.
-8. It fixes contour winding so counters remain holes.
-9. Plasticine converts the UFO-ordered on/off-curve point stream to its cubic Glyph IR, then compiles CFF/PostScript OTF.
+- White 500×500 drawing surface.
+- Black/white round pen, adjustable brush size, and white-stroke eraser.
+- Multiple named drawing layers; each can be selected, hidden or deleted.
+- Optional imported raster image beneath the drawing layers.
+- Crop mode selects the source region; draw mode edits the composite.
+- Project JSON persists per-glyph strokes, layer visibility, vector contours and advance widths.
 
-## Model and runtime
+## CV input
 
-- Upstream engine: `fontgarden/img2bez`, pinned to commit `278aa3683f1e7243158c82b1bdcdafec6436cfc6`.
-- Runtime: browser WebAssembly; no inference server, GPU or remote image upload.
-- Learned component: `siteHead: true`, the upstream four-class structural site head. The separate corner head remains disabled.
-- The rest of the pipeline is procedural: subpixel extraction, feature placement, constrained Bézier fitting, raster-loss refinement, grid snapping and contour cleanup.
-- WASM is built from `wasm/Cargo.toml` by `scripts/build-wasm.mjs`; `predev` and `prebuild` ensure assets exist before Vite starts or builds.
-- Upstream license is Apache-2.0 OR MIT; the Rust wrapper retains the upstream SPDX notice.
+Reconstruction renders a fresh 1024×1024 white-backed composite:
+1. Draw the selected crop from the imported image, if present and visible.
+2. Map visible drawing-layer strokes into the same crop, preserving stroke width and round caps.
+3. Clip to the crop and leave hidden layers out.
+4. Pass the resulting PNG bytes and selected threshold/profile to img2bez WASM.
 
-## Geometry adapter
+This is deliberate: CV sees what the user sees in the composite, not just the original uploaded image. With no imported image, the full drawing canvas is the CV source. Black and white are the only authoring colors for now.
 
-img2bez emits UFO point order: off-curve controls precede the on-curve point they lead into, and the first on-curve point carries the closing segment type. Plasticine converts each segment into a cubic:
-- lines become exact linear cubic segments;
-- cubics retain their two off-curve controls;
-- quadratic segments are converted exactly to equivalent cubic controls.
+## Vector reconstruction
 
-The adapter converts img2bez's y-up font coordinates into the app's y-down 500-unit glyph view. The returned advance width is retained per glyph and exported with the project.
+The pinned `fontgarden/img2bez` engine extracts subpixel boundaries, places structural features (corners, extrema, tangents and inflections), fits line/cubic geometry, applies H/V handle constraints and grid snapping, refines against raster pixels and corrects contour winding. The learned site head is enabled.
 
-## Limits
-
-- The current input flow handles one glyph crop at a time; it does not segment a full font specimen automatically.
-- The source profile is selectable (`wild`, `clean`, `photo`); the drawing style currently remains `basic`. Unusual scripts and design-specific styles may need further tuning.
-- The site head is an optional learned structural classifier, not a generative glyph model.
-- DeepVecFont/v2 remains a candidate for multi-reference font completion and style transfer; it is not required for single-glyph tracing.
-- Cross-glyph stem-width, baseline, x-height, sidebearing and kerning consistency are not yet solved globally.
-- Browser font preview is not a substitute for OpenType Sanitizer, fontbakery or external desktop validation.
+Plasticine converts the engine's UFO point stream to its cubic Glyph IR and retains the returned advance width. Existing fitted handles are preserved at neutral curve tension.
 
 ## Font output
 
-Cubic geometry is compiled to CFF Type 2 charstrings. The output is OTF, not TTF. Browser FontFace preview verifies that the generated font loads in the page.
+Cubic contours compile to CFF Type 2 charstrings in an OTF. Browser FontFace preview confirms that the generated font loads; external OpenType validation is still outstanding.
+
+## Limits
+
+- The source image itself is not embedded in project JSON; drawing layers and vector geometry are.
+- Layer blending is intentionally simple opaque black/white paint, not alpha compositing.
+- There is no layer reordering, undo/redo, pressure sensitivity or zoom/pan yet.
+- One crop is reconstructed at a time; automatic specimen segmentation and cross-glyph metric consistency remain future work.
