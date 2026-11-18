@@ -15,9 +15,10 @@ npm run dev
 
 1. Select a glyph from the Latin uppercase/lowercase and digit inventory.
 2. Draw closed silhouette contours. Draw counters/holes in the opposite direction.
-3. Optionally import a dark-on-light raster glyph reference. The image is thresholded locally and used as a binary pixel target; the original contours remain preserved.\n4. Adjust the simplicity penalty and curve tension. Without a reference, fitting uses geometric point-set distance; with one, coordinate descent minimizes whole-glyph pixel disagreement plus a segment-count penalty.
-4. Inspect the inferred cubic path in Vector view.
-5. Compile a CFF/PostScript OTF, load it into the live specimen and download it.
+3. Optionally import a dark-on-light raster glyph reference. The image is thresholded locally and used as a binary pixel target; the original contours remain preserved.
+4. Adjust the simplicity penalty and curve tension. Without a reference, fitting uses geometric point-set distance; with one, coordinate descent minimizes whole-glyph pixel disagreement plus a segment-count penalty.
+5. Inspect the inferred cubic path in Vector view.
+6. Compile a CFF/PostScript OTF, load it into the live specimen and download it.
 7. Export the editable project JSON to preserve source contours.
 
 ## Architecture and research
