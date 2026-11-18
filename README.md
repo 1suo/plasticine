@@ -5,28 +5,35 @@ Image-first glyph reconstruction and CFF font compilation in the browser.
 ## Workflow
 
 1. Open a raster image containing a glyph.
-2. Drag a crop around the glyph in the image stage.
-3. Adjust the foreground threshold and reconstruct. Pixel boundaries become closed vector contours; counters are retained as oppositely wound contours.
-4. Adjust curve simplicity and tension.
-5. Repeat for the required characters, compile a CFF/PostScript OTF, and test it in the specimen.
+2. Crop around the glyph.
+3. Adjust the dark-foreground threshold and reconstruct.
+4. Inspect the inferred vector outline, then repeat for other characters.
+5. Compile a CFF/PostScript OTF and test it in the specimen.
 6. Save the editable project as JSON.
 
-Images are processed locally in the browser. No drawing by hand is required.
+Images are processed locally in the browser.
+
+## Reconstruction
+
+The reconstruction pipeline uses raster boundaries as observations, then performs geometric inference:
+- resampling and smoothing to suppress pixel-grid noise;
+- tangent-based corner detection;
+- line/curve classification using total-least-squares fitting;
+- horizontal/vertical recognition and orthogonal snapping;
+- least-squares cubic Bézier fitting for curved spans;
+- shared corner coordinates and preserved counter winding.
+
+This is a deterministic CV baseline, not a pretrained neural model. The pixel boundary graph is an intermediate representation, not the final vector geometry. See [architecture](docs/architecture.md) and [research](docs/research.md) for the model distinctions and remaining work.
 
 ## Controls
 
-- Open image — PNG, JPEG, WebP, BMP and browser-decodable image formats.
-- Crop — drag a rectangular selection over the displayed image.
-- Threshold — choose which pixels count as ink (dark-on-light source).
-- Reconstruct — trace the binary pixel boundary graph into vector contours.
-- Simplicity / curve tension — fit the traced boundaries to cubic Bézier segments.
-- Findspot palette — switch among the six palettes defined in 1suo/findspot.
-
-## Implementation
-
-The tracer extracts exposed pixel edges and follows closed loops. Non-zero winding preserves holes when contours have opposite orientation. The vector fitter then simplifies each loop and converts it to cubic Bézier geometry. This is direct binary boundary tracing, not a learned image-to-vector model and not DiffVG.
-
-The editor retains source contours in the project JSON. The source raster itself is not embedded. The compiler emits CFF/PostScript OTF with cubic outlines.
+- Open image — load a browser-decodable raster.
+- Crop — select one glyph in the image stage.
+- Threshold — choose dark foreground pixels.
+- Reconstruct — infer line and cubic-curve primitives.
+- Findspot palette — switch among the six palettes from 1suo/findspot.
+- Project — import/export glyph geometry.
+- Compile OTF — generate and preview the font.
 
 ## Development
 
@@ -35,5 +42,3 @@ The editor retains source contours in the project JSON. The source raster itself
     npm test
     npm run typecheck
     npm run build
-
-See docs/architecture.md, docs/research.md, docs/journey.md and docs/acceptance.md.
