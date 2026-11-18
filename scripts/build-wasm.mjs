@@ -31,7 +31,7 @@ const smokePng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAa0
 const smokeGlyph = JSON.parse(wasm.traceToJson(new Uint8Array(smokePng), JSON.stringify({
   glyph: "A", unicode: "0041", profile: "wild", style: "basic",
   targetHeight: 500, yOffset: -100, grid: 2, threshold: 180,
-  refine: false, siteHead: true, cornerHead: false,
+  refine: true, siteHead: true, cornerHead: false,
 })));
 if (!smokeGlyph.outline?.contours?.length || !(smokeGlyph.advance?.width > 0)) {
   throw new Error("img2bez WASM smoke trace returned no usable glyph outline");
