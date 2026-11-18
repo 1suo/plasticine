@@ -19,7 +19,8 @@ describe("glyph geometry", () => {
       [{ x: 100, y: 80 }, { x: 200, y: 80 }, { x: 200, y: 180 }, { x: 100, y: 80 }],
       [{ x: 100, y: 280 }, { x: 200, y: 280 }, { x: 200, y: 380 }, { x: 100, y: 280 }]
     ], 0.5, 0.7);
-    expect(glyph.contours).toHaveLength(2);\n    expect(glyph.objective).toBeGreaterThanOrEqual(glyph.fitError);
+    expect(glyph.contours).toHaveLength(2);
+    expect(glyph.objective).toBeGreaterThanOrEqual(glyph.fitError);
   });
 
   it("compiles native cubic contours into a parseable CFF OpenType font", () => {
