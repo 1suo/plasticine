@@ -35,7 +35,7 @@ The adapter converts img2bez's y-up font coordinates into the app's y-down 500-u
 ## Limits
 
 - The current input flow handles one glyph crop at a time; it does not segment a full font specimen automatically.
-- The default profile is `wild` with the basic drawing style. Photo scans and unusual scripts may need profile/style controls.
+- The source profile is selectable (`wild`, `clean`, `photo`); the drawing style currently remains `basic`. Unusual scripts and design-specific styles may need further tuning.
 - The site head is an optional learned structural classifier, not a generative glyph model.
 - DeepVecFont/v2 remains a candidate for multi-reference font completion and style transfer; it is not required for single-glyph tracing.
 - Cross-glyph stem-width, baseline, x-height, sidebearing and kerning consistency are not yet solved globally.
