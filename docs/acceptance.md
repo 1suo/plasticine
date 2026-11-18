@@ -10,7 +10,8 @@
 - [x] Refine geometry against source pixels and preserve counter winding.
 - [x] Snap geometry to a design grid.
 - [ ] Validate against a labeled real-world glyph corpus.
-- [ ] Profile/style controls and automatic full-specimen segmentation.
+- [x] Source profile selection (wild/clean/photo).
+- [ ] Drawing-style selection and automatic full-specimen segmentation.
 
 ## Font
 - [x] Preserve UFO line/cubic/quadratic semantics in Plasticine's cubic Glyph IR.
