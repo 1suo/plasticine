@@ -17,7 +17,10 @@
 ## User journey
 - [x] Export/import source contours as project JSON.
 - [x] Download a compiled OTF and load it into the in-app specimen.
-- [x] Import a raster reference per glyph and compare binary raster masks.\n- [x] Coordinate-descent fitting against a whole-glyph raster objective with a segment-count penalty.\n- [x] Unit tests for rasterization, exact mask agreement, fitting output and malformed masks.\n- [ ] Antialiased / multiscale raster loss, affine alignment and subpixel refinement.
+- [x] Import a raster reference per glyph and compare binary raster masks.
+- [x] Coordinate-descent fitting against a whole-glyph raster objective with a segment-count penalty.
+- [x] Unit tests for rasterization, exact mask agreement, fitting output and malformed masks.
+- [ ] Antialiased / multiscale raster loss, affine alignment and subpixel refinement.
 - [ ] Editable Bézier handles, anchors, bearings, per-glyph advances and kerning.
 - [ ] WOFF2 and TTF export backends.
 - [ ] Playwright test covering draw → reconstruct → compile → FontFace render → download.
