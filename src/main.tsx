@@ -27,7 +27,7 @@ function App() {
   const [drag,setDrag] = useState<Point|null>(null);
   const [threshold,setThreshold] = useState(180);
   const [profile,setProfile] = useState<"wild"|"clean"|"photo">("wild");
-  const [tension,setTension] = useState(.8);
+  const [tension,setTension] = useState(1.0);
   const [family,setFamily] = useState("Plasticine");
   const [specimen,setSpecimen] = useState("Hamburgefontsiv 0123456789");
   const [loadedFont,setLoadedFont] = useState("");
