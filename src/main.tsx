@@ -142,12 +142,12 @@ function App() {
     const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,"image/png"));
     if(!blob){setMessage("Could not encode the visible canvas.");return;}
     try {
-      setMessage("CV is analyzing the visible black-and-white composite…");
+      setMessage("Legacy img2bez bitmap tracing is running on the visible composite…");
       const traced=await traceGlyphImage(new Uint8Array(await blob.arrayBuffer()),code,threshold,profile);
       setDrawings(old=>{const next=new Map(old);next.set(code,traced.contours);return next;});
       setAdvances(old=>{const next=new Map(old);next.set(code,traced.advanceWidth);return next;});
       const segments=traced.contours.reduce((sum,contour)=>sum+contour.length-1,0);
-      setMessage(`img2bez reconstructed ${traced.contours.length} contour(s) and ${segments} structural segments from the visible layers.`);
+      setMessage(`Legacy img2bez traced ${traced.contours.length} contour(s) and ${segments} outline segments. This is bitmap tracing, not geometric-intent recognition.`);
     } catch(error) { setMessage(String(error)); }
   }
   function compile() {
@@ -180,7 +180,7 @@ function App() {
     <nav className="glyphs" aria-label="Glyphs">{chars.map(char=><button key={char} className={code===char.charCodeAt(0)?"selected":""} onClick={()=>{setCode(char.charCodeAt(0));setActiveLayerId("ink");setMessage("Edit this glyph's layers or import a source image.");}}>{char}{(drawings.has(char.charCodeAt(0))||(layersByGlyph.get(char.charCodeAt(0))??[]).some(layer=>layer.strokes.length>0))&&<i/>}</button>)}</nav>
     <main>
       <section className="workspace">
-        <div className="stagebar"><strong>{String.fromCharCode(code)}</strong><span>{mode==="draw"?"DRAW CANVAS":"CROP SOURCE"}</span><div className="modeSwitch"><button className={mode==="draw"?"active":""} onClick={()=>setMode("draw")}>Draw</button><button className={mode==="crop"?"active":""} onClick={()=>setMode("crop")}>Crop</button></div><button onClick={reconstruct}>Reconstruct visible layers</button></div>
+        <div className="stagebar"><strong>{String.fromCharCode(code)}</strong><span>{mode==="draw"?"DRAW CANVAS":"CROP SOURCE"}</span><div className="modeSwitch"><button className={mode==="draw"?"active":""} onClick={()=>setMode("draw")}>Draw</button><button className={mode==="crop"?"active":""} onClick={()=>setMode("crop")}>Crop</button></div><button onClick={reconstruct}>Legacy bitmap trace</button></div>
         <div className="stage">
           <svg ref={svg} viewBox="0 0 500 500" onPointerDown={beginPointer} onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer} onLostPointerCapture={endPointer}>
             <rect width="500" height="500" fill="#ffffff"/>
