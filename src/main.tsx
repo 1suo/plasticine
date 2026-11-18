@@ -12,7 +12,7 @@ const palettes = {
   Knossos: { background:"#FAEBD7",surface:"#eedfcc",foreground:"#8b2323",muted:"#cdb79e",border:"#8b7355",selection:"#ff7f50",cursor:"#FF0000",primary:"#FF6347",secondary:"#1a1a1a" },
   Petra: { background:"#8b0000",surface:"#0d0d0d",foreground:"#FFE4E1",muted:"#BC8F8F",border:"#8B4513",selection:"#cd2626",cursor:"#FFD700",primary:"#ff6347",secondary:"#cdb7b5" },
   Tikal: { background:"#013220",surface:"#080808",foreground:"#F5DEB3",muted:"#2f4f4f",border:"#2f4f4f",selection:"#458b74",cursor:"#FFD700",primary:"#7CFC00",secondary:"#DAA520" },
-  Alexandria: { background:"#e6e6fa",surface:"#f5f5f5",foreground:"#483d8b",muted:"#b0c4de",border:"#708090",selection:"#6495ed",cursor:"#b22222",primary:"#4682b4",secondary:"#8a2be2" }
+  Alexandria: { background:"#FFFAFA",surface:"#FFFAFA",foreground:"#2F4F4F",muted:"#696969",border:"#708090",selection:"#2F4F4F",cursor:"#8B0000",primary:"#B22222",secondary:"#008080" }
 } as const;
 type Palette = keyof typeof palettes;
 type Crop = { x:number; y:number; w:number; h:number };
@@ -85,7 +85,7 @@ function App() {
   }
   function importProject(e:React.ChangeEvent<HTMLInputElement>) {
     const file=e.target.files?.[0];if(!file)return;
-    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");setDrawings(new Map(data.glyphs.map((g:{unicode:number;contours:Point[][]})=>[g.unicode,g.contours])));setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
+    file.text().then(text=>{const data=JSON.parse(text);if(data.format!=="plasticine-project"||!Array.isArray(data.glyphs))throw Error("Invalid Plasticine project");setDrawings(new Map<number,Point[][]>(data.glyphs.map((g:{unicode:number;contours:Point[][]})=>[g.unicode,g.contours] as [number,Point[][]])));setFamily(data.family||"Plasticine");setMessage("Project imported.");}).catch(error=>setMessage(String(error)));e.target.value="";
   }
   return <div className="app" style={themeStyle}>
     <header>
