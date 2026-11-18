@@ -33,16 +33,17 @@ function flattened(contours: GlyphIR["contours"]): Point[][] {
   }).filter(points => points.length >= 3);
 }
 
-function insideEvenOdd(x: number, y: number, paths: Point[][]): boolean {
-  let inside = false;
+function insideNonZero(x: number, y: number, paths: Point[][]): boolean {
+  let winding = 0;
   for (const path of paths) {
     for (let i = 0, j = path.length - 1; i < path.length; j = i++) {
-      const a = path[i], b = path[j];
-      if ((a.y > y) !== (b.y > y) &&
-          x < (b.x - a.x) * (y - a.y) / ((b.y - a.y) || 1e-12) + a.x) inside = !inside;
+      const a = path[j], b = path[i];
+      const side = (b.x - a.x) * (y - a.y) - (x - a.x) * (b.y - a.y);
+      if (a.y <= y && b.y > y && side > 0) winding++;
+      else if (a.y > y && b.y <= y && side < 0) winding--;
     }
   }
-  return inside;
+  return winding !== 0;
 }
 
 export function rasterizeGlyph(glyph: GlyphIR, width = GRID, height = GRID): Uint8Array {
@@ -51,14 +52,14 @@ export function rasterizeGlyph(glyph: GlyphIR, width = GRID, height = GRID): Uin
   for (let y = 0; y < height; y++) {
     const gy = (y + 0.5) * 500 / height;
     for (let x = 0; x < width; x++) {
-      if (insideEvenOdd((x + 0.5) * 500 / width, gy, paths)) output[y * width + x] = 1;
+      if (insideNonZero((x + 0.5) * 500 / width, gy, paths)) output[y * width + x] = 1;
     }
   }
   return output;
 }
 
 export function rasterDifference(glyph: GlyphIR, reference: RasterMask): number {
-  if (reference.data.length !== reference.width * reference.height || !reference.width || !reference.height) {
+  if (!Number.isInteger(reference.width) || !Number.isInteger(reference.height) || reference.width <= 0 || reference.height <= 0 || reference.data.length !== reference.width * reference.height) {
     throw new Error("Invalid raster mask dimensions");
   }
   const rendered = rasterizeGlyph(glyph, reference.width, reference.height);
