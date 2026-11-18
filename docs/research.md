@@ -33,7 +33,7 @@ It also has optional tiny learned decision heads. Plasticine enables the learned
 ## Remaining work
 
 1. Validate real-world scans and generated glyphs against a labeled corpus, not only synthetic adapter tests.
-2. Add profile/style selection (wild/clean/photo; grotesk/old-style/geometric/brush/nib/qalam) where it materially improves input classes.
+2. Add drawing-style selection (grotesk/old-style/geometric/brush/nib/qalam) where it materially improves the output.
 3. Establish cross-glyph metrics and constraints: cap height, x-height, baseline, overshoot, shared stem widths, sidebearings and spacing.
 4. Add full-specimen segmentation and batch tracing.
 5. Validate exported OTF with OpenType Sanitizer/fontbakery and external font editors.
